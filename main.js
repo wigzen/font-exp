@@ -1,5 +1,6 @@
 import {
   BoxGeometry,
+  Clock,
   Mesh,
   MeshNormalMaterial,
   PerspectiveCamera,
@@ -19,29 +20,35 @@ const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
 };
+
+// Material
+const material = new MeshNormalMaterial();
+
 //Font Loader
 const fontLoader = new FontLoader();
 
 fontLoader.load(
   "/assets/fonts/fonts/helvetiker_regular.typeface.json",
   (font) => {
-    const textGeometry = new TextGeometry("Hello World", {
-      font: font,
-      size: 0.5,
-      depth: 0.2,
-      bevelEnabled: true,
-      bevelThickness: 0.03,
-      bevelSize: 0.02,
-      bevelOffset: 0,
-      curveSegments: 5,
-      bevelSegments: 4,
-    });
-    const textMaterial = new MeshNormalMaterial({ wireframe: false });
-    const text = new Mesh(textGeometry, textMaterial);
+    const textGeometry = new TextGeometry(
+      "Creative Developer \n with ADHD &\n existential crisis",
+      {
+        font: font,
+        size: 0.5,
+        depth: 0.2,
+        bevelEnabled: true,
+        bevelThickness: 0.03,
+        bevelSize: 0.02,
+        bevelOffset: 0,
+        curveSegments: 5,
+        bevelSegments: 4,
+      }
+    );
+    const text = new Mesh(textGeometry, material);
     textGeometry.computeBoundingBox();
 
     // Hard way to center text
-    //note :geometry is not accurately center , to get more accurate subtract bevelsize for max.x , max.y , max.z
+    // note :geometry is not accurately center , to get more accurate subtract bevelsize for max.x , max.y , max.z
     // textGeometry.translate(
     //   -textGeometry.boundingBox.max.x * 0.5,
     //   -textGeometry.boundingBox.max.y * 0.5,
@@ -51,38 +58,64 @@ fontLoader.load(
     textGeometry.center();
     scene.add(text);
 
-    for (let i = 0; i < 200; i++) {
-      const box = new Mesh(new BoxGeometry(0.2, 0.2, 0.2), textMaterial);
-      textGeometry.computeBoundingBox();
-      box.position.x = (Math.random() - 0.5) * 10;
-      box.position.y = (Math.random() - 0.5) * 10;
-      box.position.z = (Math.random() - 0.5) * 10;
-      scene.add(box);
-    }
-    for (let i = 0; i < 100; i++) {
-      const box = new Mesh(
-        new TetrahedronGeometry(Math.random() * 0.1),
-        textMaterial
-      );
-      textGeometry.computeBoundingBox();
-      box.position.x = (Math.random() - 0.5) * 10;
-      box.position.y = (Math.random() - 0.5) * 10;
-      box.position.z = (Math.random() - 0.5) * 10;
-      scene.add(box);
-    }
-    for (let i = 0; i < 200; i++) {
-      const box = new Mesh(
-        new TorusGeometry(0.03, 0.02, 64, 128),
-        textMaterial
-      );
-      textGeometry.computeBoundingBox();
-      box.position.x = (Math.random() - 0.5) * 10;
-      box.position.y = (Math.random() - 0.5) * 10;
-      box.position.z = (Math.random() - 0.5) * 10;
-      scene.add(box);
-    }
+    addRandomShapesToScene(scene, material);
   }
 );
+
+const shapeArray = [];
+
+function addRandomShapesToScene(scene, material) {
+  const randomShapeFactory = (geometry, positionMultiplier) => {
+    const shape = new Mesh(geometry, material);
+    shape.position.set(
+      (Math.random() - 0.5) * positionMultiplier,
+      (Math.random() - 0.5) * positionMultiplier,
+      (Math.random() - 0.5) * positionMultiplier
+    );
+    shape.rotation.set(
+      Math.random() * 2 * Math.PI,
+      Math.random() * 2 * Math.PI,
+      Math.random() * 2 * Math.PI
+    );
+    return shape;
+  };
+
+  for (let i = 0; i < 100; i++) {
+    const cube = randomShapeFactory(new BoxGeometry(0.2, 0.2, 0.2), 10);
+    shapeArray.push(cube);
+    scene.add(cube);
+  }
+
+  for (let i = 0; i < 200; i++) {
+    const triangle = randomShapeFactory(
+      new TetrahedronGeometry(Math.random() * 0.2),
+      10
+    );
+    triangle.rotation.x = Math.random() * Math.PI;
+    shapeArray.push(triangle);
+    scene.add(triangle);
+  }
+
+  for (let i = 0; i < 200; i++) {
+    const donut = randomShapeFactory(
+      new TorusGeometry(0.03, 0.02, 64, 128),
+      10
+    );
+    shapeArray.push(donut);
+    scene.add(donut);
+  }
+}
+
+const clock = new Clock();
+function rotateShapes() {
+  const deltaTime = clock.getDelta(); // Get the time difference between frames
+
+  shapeArray.forEach((shape) => {
+    const elapsedTime = clock.getElapsedTime();
+    shape.rotation.x = -elapsedTime;
+    shape.rotation.y = elapsedTime;
+  });
+}
 
 // Scene
 const scene = new Scene();
@@ -91,16 +124,9 @@ const scene = new Scene();
 const camera = new PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
 camera.position.z = 5;
 
-// Cube
-const gemotry = new BoxGeometry(1, 1, 1);
-const material = new MeshNormalMaterial();
-const cube = new Mesh(gemotry, material);
-// scene.add(cube); // add cube to scene
-camera.lookAt(cube.position);
-
 // Renderer
 const renderer = new WebGLRenderer({
-  alpha: true,
+  alpha: true, // to make the background transparent
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(sizes.width, sizes.height);
@@ -113,7 +139,9 @@ controls.enableDamping = true;
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
+  rotateShapes();
   controls.update();
+  tex;
 }
 
 animate();
